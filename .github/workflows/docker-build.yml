@@ -23,12 +23,10 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Build Docker image
-      run: |
-        docker build -t shruti29044/node-k8s-api:latest .
+      run: docker build -t shruti29044/node-k8s-api:latest .
 
     - name: Push Docker image
-      run: |
-        docker push shruti29044/node-k8s-api:latest
+      run: docker push shruti29044/node-k8s-api:latest
 
     - name: Run Trivy Scan
       uses: aquasecurity/trivy-action@v0.13.0
