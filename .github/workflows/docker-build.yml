@@ -24,16 +24,16 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t shruti29044/node-k8s-api:v1.0.0 .
+        docker build -t shruti29044/node-k8s-api:latest .
+
+    - name: Push Docker image
+      run: |
+        docker push shruti29044/node-k8s-api:latest
 
     - name: Run Trivy Scan
       uses: aquasecurity/trivy-action@v0.13.0
       with:
-        image-ref: 'shruti29044/node-k8s-api:v1.0.0'
+        image-ref: 'shruti29044/node-k8s-api:latest'
         format: 'table'
         exit-code: '1'
         ignore-unfixed: true
-
-    - name: Push Docker image
-      run: |
-        docker push shruti29044/node-k8s-api:v1.0.0
