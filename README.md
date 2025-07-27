@@ -1,170 +1,178 @@
-# 🚀 Node.js K8s DevOps Project
+# 🌐 Node.js K8s DevOps Project
 
-This project demonstrates a complete DevOps pipeline for a Node.js + Express app using:
-
-- **Docker & GitHub Actions** for CI/CD
-- **Kubernetes (Minikube)** for orchestration
-- **Helm** for deployment
-- **Prometheus + Grafana** for monitoring
-- **Trivy** for container security scanning
+This project demonstrates a complete DevOps pipeline for a **Node.js + Express + MongoDB** app with Docker, Kubernetes, CI/CD, Monitoring, and Security Scanning.
 
 ---
 
-## 🏗️ Project Structure
+## 🛠️ Stack Overview
+
+| Layer        | Tool/Tech                               |
+|--------------|------------------------------------------|
+| App          | Node.js + Express + MongoDB              |
+| Container    | Docker                                   |
+| Orchestration| Kubernetes (Minikube)                    |
+| CI/CD        | GitHub Actions                           |
+| IaC          | Helm                                     |
+| Monitoring   | Prometheus + Grafana                     |
+| Security     | Trivy (Docker Image Scanning)            |
+
+---
+
+## 🚀 Features
+
+- RESTful Node.js API with Express
+- Containerized using Docker
+- CI/CD via GitHub Actions
+- Docker image scanning with Trivy
+- Kubernetes deployment using Helm
+- Monitoring using Prometheus and Grafana
+- Works with Minikube or any K8s cluster
+
+---
+
+## 📁 Project Structure
 
 ```
 
-node-k8s-devops/
-├── Dockerfile
-├── deployment.yaml
-├── .github/
-│   └── workflows/
-│       └── docker-build.yml
-├── helm/
-│   └── node-api/
-│       └── templates/
-│           └── deployment.yaml
-├── monitoring/
-│   └── node-api-servicemonitor.yaml
-├── package.json
-└── index.js
+.
+├── .github/workflows         # GitHub Actions CI workflow
+├── Dockerfile                # Docker build instructions
+├── helm/                     # Helm chart for deployment
+├── k8s/                      # Kubernetes YAMLs (if not using Helm)
+├── monitoring/               # ServiceMonitor for Prometheus
+├── src/                      # Node.js app source code
+└── README.md
 
 ````
 
 ---
 
-## ✅ Features
+## 🐳 Docker Commands
 
-- Automatically builds & scans Docker image on push to `main`
-- Pushes Docker image to DockerHub
-- Deploys Node.js app to Kubernetes using Helm
-- Monitors app with Prometheus & Grafana
-- Secures container with Trivy scan
+```bash
+# Build and tag image
+docker build -t shruti29044/node-k8s-api:latest .
 
----
-
-## 🔄 CI/CD Flow
-
-1. Push to `main` on GitHub
-2. GitHub Actions:
-   - Builds Docker image
-   - Scans with Trivy
-   - Pushes to DockerHub
-3. Manually deploy using Helm:
-   ```bash
-   helm install node-api ./helm/node-api
+# Push to DockerHub
+docker login -u shruti29044
+docker push shruti29044/node-k8s-api:latest
 ````
 
 ---
 
-## 📊 Monitoring
+## 🤖 GitHub Actions CI/CD
 
-* **Prometheus** scrapes metrics from the app
-* **Grafana** displays metrics dashboards
-* ServiceMonitor configured via `monitoring/node-api-servicemonitor.yaml`
-* Prometheus data source in Grafana:
+On every push to `main`, this runs:
 
-  ```
-  http://prometheus-stack-kube-prom-prometheus.default.svc.cluster.local:9090
-  ```
+* Checkout code
+* Build Docker image
+* Run **Trivy** vulnerability scan
+* Push image to DockerHub
 
----
+> GitHub Secrets used:
 
-## 🔒 Security with Trivy
+* `DOCKER_USERNAME`
+* `DOCKER_PASSWORD`
 
-Trivy scans the Docker image for vulnerabilities **before push**:
+Workflow file:
 
-```yaml
-- name: Run Trivy Scan
-  uses: aquasecurity/trivy-action@v0.20.0
-  with:
-    image-ref: 'shruti29044/node-k8s-api:latest'
-    format: 'table'
-    exit-code: '1'
-    ignore-unfixed: true
+```
+.github/workflows/docker-build.yml
 ```
 
 ---
 
-## 🛠️ GitHub Actions Workflow
+## ☸️ Kubernetes (Minikube)
 
-`.github/workflows/docker-build.yml`:
+```bash
+# Start minikube
+minikube start
 
-```yaml
-name: Build and Push Docker Image with Trivy Scan
+# Deploy to K8s
+kubectl apply -f k8s/deployment.yaml
 
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  build-and-scan:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Log in to DockerHub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-
-    - name: Build Docker image
-      run: docker build -t shruti29044/node-k8s-api:latest .
-
-    - name: Run Trivy Scan
-      uses: aquasecurity/trivy-action@v0.20.0
-      with:
-        image-ref: 'shruti29044/node-k8s-api:latest'
-        format: 'table'
-        exit-code: '1'
-        ignore-unfixed: true
-
-    - name: Push Docker image
-      run: docker push shruti29044/node-k8s-api:latest
+# Forward port
+kubectl port-forward svc/node-api-api 3000:3000
 ```
 
 ---
 
-## 🚧 Detailed Challenges Faced & Resolutions
+## 📦 Helm Deployment (Optional)
 
-| Area                                       | Challenge                                                                                  | Resolution                                                                                             |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| **GitHub Actions – Secret Leaks**          | GitHub flagged a hardcoded DockerHub access token as a security risk and blocked the push. | Used GitHub Secrets instead of hardcoding the credentials and recommitted securely.                    |
-| **Trivy Version Error**                    | GitHub Actions couldn't resolve `aquasecurity/trivy-action@v0.13.0`.                       | Updated to the correct latest version: `@v0.20.0`.                                                     |
-| **Prometheus-Grafana Connection**          | Grafana couldn’t reach Prometheus via `localhost:9090` inside Kubernetes.                  | Used internal DNS: `http://prometheus-stack-kube-prom-prometheus.default.svc.cluster.local:9090`.      |
-| **Port Conflicts**                         | Error: `Unable to listen on port 9090`.                                                    | Used alternate local port: `kubectl port-forward svc/prometheus-stack-kube-prom-prometheus 9095:9090`. |
-| **Docker Build Errors**                    | `npm install` failed due to missing `package.json`.                                        | Ran `npm init -y` and installed dependencies (`express`, `mongoose`).                                  |
-| **Git Remote Issues**                      | `git remote origin already exists` or `repository not found`.                              | Reset remote URL using `git remote set-url`.                                                           |
-| **DockerHub Login Confusion**              | Didn’t know how to use Docker access token in CLI.                                         | Logged in using `docker login -u USERNAME`, then pasted the access token as password.                  |
-| **Grafana Dashboards Not Showing Metrics** | No metrics shown despite Prometheus running.                                               | Created and applied `ServiceMonitor`, and ensured metrics were exposed in the app.                     |
+```bash
+# Install Helm dependencies (if any)
+helm dependency update helm/
 
----
+# Deploy with Helm
+helm install node-api helm/
 
-## 🎯 Final Thoughts
-
-This project gives you full hands-on with:
-
-* Containerization
-* Infrastructure as Code
-* CI/CD pipelines
-* Monitoring & observability
-* Secure builds
-
-You can now expand this with:
-
-* ArgoCD for GitOps
-* Terraform for cloud infra
-* Snyk or other advanced security tools
+# Upgrade
+helm upgrade node-api helm/
+```
 
 ---
 
-Let me know if you'd like this saved as a file (`README.md`) or pushed to GitHub automatically.
+## 📊 Monitoring with Prometheus + Grafana
+
+### Access Grafana
+
+```bash
+kubectl port-forward svc/prometheus-stack-grafana 3000:80
+# Then go to http://localhost:3000
+```
+
+* Username: `admin`
+* Password: `prom-operator`
+
+### Prometheus Data Source URL
 
 ```
+http://prometheus-stack-kube-prom-prometheus.default.svc.cluster.local:9090
+```
+
+---
+
+## 🔐 Security: Trivy Docker Image Scan
+
+Run manually (or in CI):
+
+```bash
+trivy image shruti29044/node-k8s-api:latest
+```
+
+---
+
+## ⚠️ Challenges Faced
+
+| Area           | Challenge                                                                                            |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| GitHub Actions | Git push was blocked due to hardcoded secrets; resolved via GitHub Secrets                           |
+| Trivy          | Trivy version mismatch; had to use a valid supported version                                         |
+| Prometheus     | Grafana couldn't reach Prometheus at `localhost`; fixed by using the internal Kubernetes service URL |
+| Kubernetes     | Port-forwarding conflicts; solved by forwarding to alternate local ports                             |
+| Docker         | Dockerfile failed initially due to missing `package.json`                                            |
+| Grafana        | Custom dashboards didn't load due to missing metrics; fixed after Prometheus connection              |
+| CI/CD          | Debugging CI failure logs and tweaking `docker-build.yml`                                            |
+
+---
+
+## 📄 License
+
+MIT License © 2025 Shruti29044
+
+---
+
+## 🙌 Acknowledgements
+
+* [Trivy](https://github.com/aquasecurity/trivy)
+* [Prometheus](https://prometheus.io/)
+* [Grafana](https://grafana.com/)
+* [Kubernetes](https://kubernetes.io/)
+* [GitHub Actions](https://docs.github.com/actions)
+
+```
+
+---
+
+Let me know if you'd like this saved as a file using a command, or if you want to publish it to your GitHub repo directly.
 ```
