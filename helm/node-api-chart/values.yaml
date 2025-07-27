@@ -1,0 +1,18 @@
+replicaCount: 2
+
+image:
+  repository: shruti29044/node-k8s-api
+  tag: latest
+
+service:
+  type: ClusterIP
+  port: 3000
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+livenessProbe:
+  path: /health
+  port: 3000
